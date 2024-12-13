@@ -1,81 +1,164 @@
-Para ejecutar el sistema de comparación de predicciones, sigue estos pasos en orden:
+# Sistema de Comparación de Predicciones - ModeloVinos
 
-1. REQUISITOS PREVIOS:
-- Python 3.8 o superior
-- Docker y Docker Compose
-- pip (gestor de paquetes de Python)
+Este proyecto implementa un sistema de comparación de predicciones utilizando Kafka, servicios REST y gRPC. Sigue los pasos descritos para configurar, ejecutar y detener el sistema.
 
-2. CREAR ENTORNO VIRTUAL:
+---
+
+## **Requisitos Previos**
+Antes de comenzar, asegúrate de contar con lo siguiente instalado en tu sistema:
+
+- **Python** 3.8 o superior
+- **Docker** y **Docker Compose**
+- **pip** (gestor de paquetes de Python)
+
+---
+
+## **Instalación y Configuración**
+
+### 1. Crear un Entorno Virtual
+Crea y activa un entorno virtual para aislar las dependencias del proyecto.
+
+#### En Linux/Mac:
 ```bash
 python -m venv venv
-source venv/bin/activate  # En Linux/Mac
-# o
-.\venv\Scripts\activate  # En Windows
+source venv/bin/activate
 ```
 
-3. INSTALAR DEPENDENCIAS:
+#### En Windows:
+```bash
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+### 2. Instalar Dependencias
+Instala las dependencias necesarias ejecutando:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-4. INICIAR DOCKER:
+### 3. Iniciar Docker
+Inicia los servicios de Docker necesarios para Kafka y Zookeeper:
+
 ```bash
 cd Kafka/docker-kafka
 docker-compose up -d
 ```
 
-5. CREAR TOPICS DE KAFKA:
+### 4. Crear Topics en Kafka
+Crea los topics necesarios para la comunicación entre servicios:
+
 ```bash
 kafka-topics --create --topic prediction_requests --bootstrap-server localhost:29092 --if-not-exists
 kafka-topics --create --topic prediction_results --bootstrap-server localhost:29092 --if-not-exists
 ```
 
-6. INICIAR SERVICIOS (en terminales separadas):
+---
 
-Terminal 1 - API REST:
+## **Ejecutar el Sistema**
+
+Abre terminales separadas para cada servicio y ejecuta los comandos correspondientes:
+
+### Terminal 1 - API REST
 ```bash
 cd Api
 python api_app.py
 ```
 
-Terminal 2 - Servidor gRPC:
-```bash 
+### Terminal 2 - Servidor gRPC
+```bash
 cd GRP
 python grp_app.py
 ```
 
-Terminal 3 - Servicio Kafka:
+### Terminal 3 - Servicio Kafka
 ```bash
 cd Kafka
 python app/prediction_service.py
 ```
 
-7. EJECUTAR COMPARACIÓN:
+### Terminal 4 - Comparación de Predicciones
+Ejecuta el script para comparar las predicciones:
+
 ```bash
 python comparison_text.py
 ```
 
-PUERTOS UTILIZADOS:
-- REST API: 8000
-- gRPC: 50051
-- Kafka: 29092
-- Zookeeper: 22181
+---
 
-PARA DETENER TODO:
-1. Detener los scripts de Python con Ctrl+C en cada terminal
-2. Detener Docker:
+## **Puertos Utilizados**
+
+| Servicio        | Puerto |
+|-----------------|--------|
+| REST API        | 8000   |
+| gRPC            | 50051  |
+| Kafka           | 29092  |
+| Zookeeper       | 22181  |
+
+---
+
+## **Detener el Sistema**
+
+1. Detén los scripts de Python en cada terminal usando `Ctrl+C`.
+2. Detén los servicios de Docker:
+
 ```bash
 cd Kafka/docker-kafka
 docker-compose down
 ```
 
-VERIFICACIÓN DE SERVICIOS:
-- REST API: http://localhost:8000/health
-- gRPC: python GRP/test_client.py
-- Kafka: docker-compose logs kafka
+---
 
-Si algo falla, asegúrate de que:
-1. Docker esté corriendo
-2. Todos los servicios estén iniciados
-3. Los puertos no estén siendo usados por otras aplicaciones
-# ModeloVinos
+## **Verificación de Servicios**
+
+- **REST API**: Accede a [http://localhost:8000/health](http://localhost:8000/health) para verificar el estado del servicio.
+- **gRPC**: Ejecuta el cliente de prueba:
+  ```bash
+  python GRP/test_client.py
+  ```
+- **Kafka**: Revisa los logs de Kafka:
+  ```bash
+  docker-compose logs kafka
+  ```
+
+---
+
+## **Solución de Problemas**
+
+Si encuentras problemas, verifica lo siguiente:
+
+1. **Docker**: Asegúrate de que Docker esté en ejecución.
+2. **Puertos**: Confirma que los puertos no estén siendo utilizados por otras aplicaciones.
+3. **Servicios**: Asegúrate de que todos los servicios se hayan iniciado correctamente.
+
+---
+
+## **Estructura del Proyecto**
+
+```plaintext
+├── Api/
+│   ├── api_app.py          # Servicio REST API
+├── GRP/
+│   ├── grp_app.py          # Servidor gRPC
+│   ├── test_client.py      # Cliente de prueba para gRPC
+├── Kafka/
+│   ├── app/
+│   │   ├── prediction_service.py  # Servicio Kafka
+│   ├── docker-kafka/       # Configuración de Docker para Kafka
+├── comparison_text.py      # Comparador de predicciones
+├── requirements.txt        # Dependencias del proyecto
+```
+
+---
+
+## **Contribución**
+Si deseas contribuir a este proyecto, abre un issue o crea un pull request en el repositorio correspondiente.
+
+---
+
+## **Licencia**
+Este proyecto está licenciado bajo los términos de [MIT License](LICENSE).
+
+--- 
+
+¡Disfruta utilizando el sistema de comparación de predicciones! 🚀
