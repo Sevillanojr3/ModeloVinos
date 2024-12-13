@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package wine;
+
+// Servicio de predicción de vinos
+service WinePredictor {
+    // Método para predecir la calidad del vino
+    rpc PredictWine (WineFeatures) returns (WinePrediction) {}
+    // Método para verificar el estado del servicio
+    rpc CheckHealth (HealthRequest) returns (HealthResponse) {}
+}
+
+// Características del vino para la predicción
+message WineFeatures {
+    double alcohol = 1;
+    double malic_acid = 2;
+    double ash = 3;
+    double alcalinity_of_ash = 4;
+    double magnesium = 5;
+    double total_phenols = 6;
+    double flavanoids = 7;
+    double nonflavanoid_phenols = 8;
+    double proanthocyanins = 9;
+    double color_intensity = 10;
+    double hue = 11;
+    double od280_od315 = 12;
+    double proline = 13;
+}
+
+// Respuesta de la predicción
+message WinePrediction {
+    int32 prediction = 1;
+    string wine_type = 2;
+}
+
+// Solicitud de estado de salud
+message HealthRequest {}
+
+// Respuesta del estado de salud
+message HealthResponse {
+    string status = 1;
+    string message = 2;
+    bool model_loaded = 3;
+} 
