@@ -63,19 +63,185 @@ docker-compose up -d
 
 ### 5. Despliegue en Kubernetes
 
+## Prerrequisitos
+
+1. Instalar Minikube:
 ```bash
-# Iniciar Minikube
-minikube start
+# Para Linux
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
 
-# Cargar la imagen en Minikube
-minikube image load microservicio-grpc:1.0
+# Para MacOS
+brew install minikube
 
-# Aplicar la configuración
-kubectl apply -f k8s-grpc-deployment.yaml
+# Para Windows (con chocolatey)
+choco install minikube
+```
 
-# Verificar el despliegue
-kubectl get pods
+2. Instalar kubectl:
+```bash
+# Para Linux
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Para MacOS
+brew install kubectl
+
+# Para Windows (con chocolatey)
+choco install kubernetes-cli
+```
+
+## Configuración Inicial
+
+1. **Iniciar Minikube con recursos adecuados**:
+```bash
+minikube start --cpus 2 --memory 2048 --driver=docker
+```
+
+2. **Habilitar el registro local de Docker en Minikube**:
+```bash
+eval $(minikube docker-env)
+```
+
+3. **Construir la imagen Docker**:
+```bash
+cd ../docker
+./buildAll.sh
+```
+
+4. **Crear directorio para modelos**:
+```bash
+minikube ssh
+sudo mkdir -p /models
+exit
+```
+
+5. **Copiar el modelo al directorio en Minikube**:
+```bash
+minikube cp ../models/random_forest_model.pkl /models/
+```
+
+## Despliegue
+
+1. **Aplicar la configuración de Kubernetes**:
+```bash
+kubectl apply -f grpc.yaml
+```
+
+2. **Verificar el despliegue**:
+```bash
+# Verificar pods
+kubectl get pods -w
+
+# Verificar servicios
 kubectl get services
+```
+
+3. **Exponer el servicio**:
+```bash
+minikube service wine-predictor-service --url
+```
+
+## Pruebas
+
+1. **Configurar port-forwarding para pruebas locales**:
+```bash
+kubectl port-forward service/wine-predictor-service 50051:50051
+```
+
+2. **Ejecutar el cliente de prueba** (en otra terminal):
+```bash
+python ../test_client.py
+```
+
+## Monitoreo y Diagnóstico
+
+```bash
+# Ver logs de todos los pods
+kubectl logs -l app=wine-predictor --all-containers=true -f
+
+# Describir el deployment
+kubectl describe deployment wine-predictor
+
+# Ver eventos del cluster
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+## Escalado
+
+```bash
+# Escalar manualmente
+kubectl scale deployment wine-predictor --replicas=6
+
+# Verificar el escalado
+kubectl get pods -w
+```
+
+## Limpieza
+
+```bash
+# Eliminar el deployment y service
+kubectl delete -f grpc.yaml
+
+# Detener Minikube
+minikube stop
+
+# Eliminar el cluster (opcional)
+minikube delete
+```
+
+## Solución de Problemas Comunes
+
+1. **Los pods no inician**:
+```bash
+# Verificar eventos del pod
+kubectl describe pod <nombre-del-pod>
+
+# Verificar logs
+kubectl logs <nombre-del-pod>
+```
+
+2. **Error de imagen no encontrada**:
+- Asegúrate de haber construido la imagen con el registro de Docker de Minikube
+- Verifica que estás usando `imagePullPolicy: Never` en el deployment
+
+3. **Error de acceso al modelo**:
+- Verifica que el modelo existe en `/models/` dentro de Minikube
+- Comprueba los permisos del directorio
+
+4. **Servicio no accesible**:
+```bash
+# Verificar endpoints
+kubectl get endpoints wine-predictor-service
+
+# Verificar service
+kubectl describe service wine-predictor-service
+```
+
+## Comandos Útiles Adicionales
+
+```bash
+# Ver dashboard de Minikube
+minikube dashboard
+
+# Ver IP de Minikube
+minikube ip
+
+# Reiniciar deployment
+kubectl rollout restart deployment wine-predictor
+
+# Ver logs en tiempo real
+kubectl logs -f deployment/wine-predictor
+```
+
+## Notas de Rendimiento
+
+- El servicio está configurado para usar recursos mínimos (10m CPU, 50Mi memoria)
+- Ajusta los recursos en `grpc.yaml` según tus necesidades
+- Monitorea el uso de recursos con:
+```bash
+kubectl top pods
+kubectl top nodes
 ```
 
 ## Configuración de Kubernetes
@@ -95,40 +261,6 @@ El archivo `k8s-grpc-deployment.yaml` define:
 ### Service
 - Tipo NodePort
 - Expone el puerto 50051
-
-## Pruebas
-
-1. **Verificar el servicio**:
-```bash
-kubectl get services wine-predictor-service
-```
-
-2. **Obtener la URL del servicio**:
-```bash
-minikube service wine-predictor-service --url
-```
-
-3. **Ejecutar el cliente de prueba**:
-```bash
-python test_client.py
-```
-
-## Monitoreo
-
-```bash
-# Ver logs de los pods
-kubectl logs -l app=wine-predictor
-
-# Verificar estado de los pods
-kubectl describe pods -l app=wine-predictor
-```
-
-## Escalado
-
-```bash
-# Escalar el número de réplicas
-kubectl scale deployment wine-predictor --replicas=6
-```
 
 ## Requisitos
 
@@ -154,21 +286,6 @@ joblib==1.3.2
 2. El servicio requiere acceso al directorio de modelos
 3. Los health checks deben estar implementados correctamente en el servidor gRPC
 4. Los recursos asignados pueden necesitar ajustes según el uso
-
-## Solución de Problemas
-
-1. **Pods en estado CrashLoopBackOff**:
-   - Verificar logs: `kubectl logs <pod-name>`
-   - Comprobar la ruta del modelo
-   - Verificar recursos asignados
-
-2. **Servicio no accesible**:
-   - Verificar estado del service: `kubectl describe service wine-predictor-service`
-   - Comprobar endpoints: `kubectl get endpoints`
-
-3. **Problemas de rendimiento**:
-   - Monitorear uso de recursos
-   - Ajustar límites según sea necesario
 
 ## Contribuciones
 

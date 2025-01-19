@@ -1,121 +1,177 @@
+# Servicio gRPC de Predicción de Vinos
 
-````markdown
-# Docker Compose para Servicio gRPC de Predicción de Vinos
+Este servicio implementa un predictor de calidad de vinos usando gRPC y machine learning.
 
-Este documento describe la configuración del servicio gRPC usando Docker Compose para el predictor de calidad de vinos.
+## 📁 Estructura del Proyecto
 
-## Estructura del Docker Compose
+```
+GRP/
+├── docker/                  # Configuración Docker
+│   ├── dockerfile          # Definición de imagen
+│   ├── requirements.txt    # Dependencias Python
+│   ├── buildAll.sh        # Script construcción
+│   ├── runAll.sh          # Script ejecución
+│   └── stopAll.sh         # Script detención
+├── models/                 # Directorio modelos ML
+│   └── random_forest_model.pkl
+├── *.py                    # Archivos Python del servicio
+├── *.proto                 # Definición del servicio gRPC
+├── docker-compose.yaml     # Configuración Docker Compose
+└── README.md
+```
 
-El archivo `docker-compose.yaml` define la configuración para el servicio de predicción:
+## 🚀 Inicio Rápido
 
-````yaml
+1. Preparación del entorno:
+```bash
+# Crear directorio para modelos
+mkdir -p models
+
+# Dar permisos de ejecución a scripts
+chmod +x docker/*.sh
+
+# Copiar tu modelo de ML
+cp /ruta/a/tu/modelo/random_forest_model.pkl models/
+```
+
+2. Construir y ejecutar:
+```bash
+# Construir imagen
+cd docker && ./buildAll.sh
+
+# Iniciar servicio
+docker-compose up -d
+```
+
+3. Verificar funcionamiento:
+```bash
+# Comprobar estado
+docker-compose ps
+
+# Ver logs
+docker-compose logs -f
+```
+
+## 🔧 Configuración
+
+### Variables de Entorno
+```yaml
+GRPC_PORT: 50051          # Puerto gRPC
+APP_ENV: production       # Entorno de ejecución
+MODEL_PATH: /app/models/random_forest_model.pkl
+PYTHONUNBUFFERED: 1      # Logs sin buffer
+```
+
+### Puertos
+- **50051**: Puerto principal gRPC
+
+### Volúmenes
+- `./models:/app/models`: Montaje de modelos ML
+
+## 🧪 Pruebas
+
+1. Usando el cliente de prueba:
+```bash
+python test_client.py
+```
+
+2. Usando grpcurl:
+```bash
+grpcurl -plaintext localhost:50051 wine.WinePredictor/CheckHealth
+```
+
+## 📦 Docker Compose
+
+```yaml
 version: '3.8'
 services:
   wine-predictor:
     image: microservicio-grpc:1.0
     ports:
       - "50051:50051"
-````
+    volumes:
+      - ./models:/app/models
+    environment:
+      - GRPC_PORT=50051
+      - MODEL_PATH=/app/models/random_forest_model.pkl
+    networks:
+      - microservices-net
+```
 
-## Configuración del Servicio
+## 🛠️ Scripts Disponibles
 
-### Wine Predictor Service
+### Docker
+- `buildAll.sh`: Construye la imagen Docker
+- `runAll.sh`: Inicia el servicio
+- `stopAll.sh`: Detiene el servicio
 
-#### Puertos
-- Expone el puerto `50051` para comunicación gRPC
-- Mapeo: `50051:50051` (host:contenedor)
-
-#### Variables de Entorno
-````yaml
-environment:
-  - GRPC_PORT=50051
-  - APP_ENV=production
-  - MODEL_PATH=/app/models/random_forest_model.pkl
-  - PYTHONUNBUFFERED=1
-````
-
-#### Volúmenes
-````yaml
-volumes:
-  - ./models:/app/models
-````
-- Monta el directorio local `./models` en `/app/models` del contenedor
-- Permite cargar modelos ML sin reconstruir la imagen
-
-#### Networking
-````yaml
-networks:
-  microservices-net:
-    aliases:
-      - wine-predictor
-````
-- Usa la red `microservices-net`
-- Alias para fácil descubrimiento de servicios
-
-## Uso
-
-1. Asegúrate de tener la imagen construida:
-````bash
-docker build -t microservicio-grpc:1.0 .
-````
-
-2. Inicia el servicio:
-````bash
+### Comandos Docker Compose
+```bash
+# Iniciar servicio
 docker-compose up -d
-````
 
-3. Verifica el estado:
-````bash
-docker-compose ps
-````
-
-4. Detén el servicio:
-````bash
+# Detener servicio
 docker-compose down
-````
 
-## Requisitos Previos
+# Ver logs
+docker-compose logs -f
+```
 
-- Imagen Docker `microservicio-grpc:1.0`
-- Modelo ML en el directorio `./models`
-- Red Docker `microservices-net` (se crea automáticamente si no existe)
+## ⚠️ Solución de Problemas
 
-## Estructura de Directorios
-````
-.
-├── docker-compose.yaml
-├── models/
-│   └── random_forest_model.pkl
-└── README.md
-````
+### Problemas Comunes
 
-## Notas Importantes
+1. **Servicio no inicia**
+   - Verificar puerto 50051 disponible
+   - Comprobar existencia del modelo
+   - Revisar logs: `docker-compose logs -f`
 
-- El servicio espera encontrar el modelo en `/app/models/random_forest_model.pkl`
-- La red `microservices-net` debe existir o se creará automáticamente
-- Los logs están habilitados con `PYTHONUNBUFFERED=1`
-- El servicio corre en modo producción (`APP_ENV=production`)
+2. **Errores de imagen**
+   - "Image not found": Ejecutar `buildAll.sh`
+   - Verificar nombre correcto de imagen
 
-## Monitoreo
+3. **Problemas de red**
+   - Crear red: `docker network create microservices-net`
+   - Verificar redes: `docker network ls`
 
-- El servicio está disponible en `localhost:50051`
-- Usa herramientas como `grpcurl` o `grpcui` para pruebas
-- Los logs se pueden ver con:
-````bash
+### Verificación de Estado
+```bash
+# Estado del contenedor
+docker-compose ps
+
+# Logs del servicio
 docker-compose logs -f wine-predictor
-````
 
-## Troubleshooting
+# Health check
+grpcurl -plaintext localhost:50051 wine.WinePredictor/CheckHealth
+```
 
-1. Si el servicio no inicia:
-   - Verifica que el puerto 50051 esté disponible
-   - Confirma que el modelo existe en ./models
+## 📋 Requisitos
 
-2. Problemas de red:
-   - Verifica la existencia de la red: `docker network ls`
-   - Recrea la red si es necesario: `docker network create microservices-net`
+- Docker 20.10+
+- Docker Compose 2.0+
+- Modelo ML entrenado (random_forest_model.pkl)
+- 2GB RAM mínimo
+- Puerto 50051 disponible
 
-3. Problemas de permisos:
-   - Verifica permisos del directorio models
-   - Asegura que el contenedor puede leer el modelo
-````
+## 🔒 Seguridad
+
+- El servicio corre en modo no seguro (gRPC plaintext)
+- No exponer directamente a internet
+- Considerar implementar TLS para producción
+
+## 📝 Notas Adicionales
+
+- Los logs están habilitados por defecto
+- El servicio está configurado para producción
+- El modelo debe estar presente en `models/` antes de iniciar
+- La red `microservices-net` se crea automáticamente
+
+## 🤝 Contribuciones
+
+Para contribuir:
+1. Fork del repositorio
+2. Crear rama feature (`git checkout -b feature/AmazingFeature`)
+3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abrir Pull Request```

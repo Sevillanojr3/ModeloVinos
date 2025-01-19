@@ -1,4 +1,3 @@
-```markdown
 # Clasificador de Vinos - Despliegue en Kubernetes
 
 Este proyecto implementa un servicio de clasificación de vinos utilizando FastAPI y se despliega en Kubernetes (Minikube). El servicio utiliza un modelo de Random Forest para clasificar vinos en diferentes categorías.
@@ -21,7 +20,8 @@ Este proyecto implementa un servicio de clasificación de vinos utilizando FastA
 │   │   ├── requirements.txt   # Dependencias Python
 │   │   ├── runAll.sh         # Script para ejecutar Docker
 │   │   └── stopAll.sh        # Script para detener Docker
-│   └── api.yaml              # Configuración Kubernetes
+│   ├── Minicube/
+│   │   └── api.yaml          # Configuración Kubernetes
 ├── random_forest_model.pkl    # Modelo entrenado
 └── README.md
 ```
@@ -30,7 +30,7 @@ Este proyecto implementa un servicio de clasificación de vinos utilizando FastA
 
 1. **Iniciar Minikube**
 ```bash
-minikube start
+minikube start --driver=docker
 ```
 
 2. **Construir la Imagen Docker**
@@ -38,20 +38,42 @@ minikube start
 # Cambiar al entorno Docker de Minikube
 eval $(minikube docker-env)
 
+# Asegurarse de estar en el directorio raíz del proyecto
+cd ../..
+
 # Construir la imagen
 docker build -t fastapi-wine-classifier:1.0 -f Api/docker/dockerfile .
 ```
 
 3. **Verificar la Imagen**
 ```bash
-docker images | grep fastapi-wine-classifier
+docker images | grep fastapi-wine-classifier:1.0
 ```
 
 ## Despliegue en Kubernetes
 
-1. **Aplicar la Configuración**
+1. **Crear un ConfigMap para el modelo**
 ```bash
-kubectl apply -f Api/api.yaml
+# Crear un directorio en Minikube para el modelo
+minikube ssh "sudo mkdir -p /mnt/data"
+
+# Copiar el modelo al nodo de Minikube
+minikube cp random_forest_model.pkl /mnt/data/random_forest_model.pkl
+```
+
+2. **Modificar el path del volumen en api.yaml**
+Asegúrate de que el path en el volumen hostPath apunte a la nueva ubicación:
+```yaml
+volumes:
+- name: model-volume
+  hostPath:
+    path: /mnt/data/random_forest_model.pkl
+    type: File
+```
+
+3. **Aplicar la Configuración**
+```bash
+kubectl apply -f Api/Minicube/api.yaml
 ```
 
 2. **Verificar el Despliegue**
@@ -132,7 +154,7 @@ Para eliminar todos los recursos creados:
 
 ```bash
 # Eliminar el deployment y el servicio
-kubectl delete -f Api/api.yaml
+kubectl delete -f Api/Minicube/api.yaml
 
 # Detener Minikube (opcional)
 minikube stop
@@ -169,17 +191,40 @@ El deployment está configurado con los siguientes límites de recursos:
 
 1. **Si los pods no inician:**
 ```bash
+# Ver estado detallado del pod
 kubectl describe pod <nombre-del-pod>
+
+# Ver logs del pod
+kubectl logs <nombre-del-pod>
+
+# Verificar que el modelo existe en el nodo
+minikube ssh "ls -l /mnt/data/random_forest_model.pkl"
 ```
 
 2. **Si el servicio no es accesible:**
 ```bash
+# Verificar el servicio
 kubectl describe service wine-classifier-service
+
+# Obtener la URL del servicio
+minikube service wine-classifier-service --url
+
+# En caso de problemas de red
+minikube tunnel
 ```
 
 3. **Para reiniciar el deployment:**
 ```bash
 kubectl rollout restart deployment wine-classifier
+```
+
+4. **Si hay problemas con la imagen Docker:**
+```bash
+# Verificar que estás usando el entorno Docker de Minikube
+eval $(minikube docker-env)
+
+# Reconstruir la imagen si es necesario
+docker build -t fastapi-wine-classifier:1.0 -f Api/docker/dockerfile .
 ```
 
 ## Notas Adicionales

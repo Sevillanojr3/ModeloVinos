@@ -106,4 +106,53 @@ El proyecto utiliza una red Docker dedicada llamada `microservices-net` para fac
 - Se implementa caché de capas Docker para optimizar builds
 - Los scripts incluyen manejo de errores básico
 - El contenedor se ejecuta en modo detached (-d)
+
+## Ejecución del Proyecto
+
+### Método 1: Usando los Scripts
+Desde la carpeta `Api/docker`:
+
+```bash
+# Para construir la imagen
+./buildAll.sh
+
+# Para ejecutar el contenedor
+./runAll.sh
+
+# Para detener el servicio
+./stopAll.sh
+```
+
+### Método 2: Comandos Docker Directos
+También puedes ejecutar los comandos Docker manualmente desde la raíz del proyecto:
+
+1. Construir la imagen:
+```bash
+docker build -t fastapi-wine-classifier:1.0 -f Api/docker/dockerfile .
+```
+
+2. Ejecutar el contenedor:
+```bash
+docker run -d \
+    --name wine-classifier \
+    --network microservices-net \
+    -p 8000:8000 \
+    -e APP_ENV=production \
+    -e APP_PORT=8000 \
+    fastapi-wine-classifier:1.0
+```
+
+3. Para detener el contenedor:
+```bash
+docker stop [ID_DEL_CONTENEDOR]
+```
+
+4. Para ver los logs:
+```bash
+docker logs [ID_DEL_CONTENEDOR]
+```
+
+5. Para ver contenedores en ejecución:
+```bash
+docker ps
 ```

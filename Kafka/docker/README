@@ -1,4 +1,3 @@
-```markdown
 # Microservicio de Predicción con Kafka y Docker
 
 Este proyecto implementa un microservicio de predicción utilizando Apache Kafka para la comunicación asíncrona y Docker para la contenerización.
@@ -12,8 +11,6 @@ Kafka/
 │   └── prediction_service.py   # Servicio de predicción
 ├── docker/
 │   ├── Dockerfile             # Configuración de la imagen Docker
-│   ├── buildall.sh           # Script para construir imágenes
-│   ├── runall.sh             # Script para ejecutar contenedores
 │   └── requirements.txt       # Dependencias Python
 └── models/                    # Directorio para modelos ML
 ```
@@ -31,53 +28,87 @@ Kafka/
 - Envía solicitudes de predicción
 - Escucha respuestas del servicio
 
-## Configuración Docker
+## Configuración y Despliegue
 
-### Dockerfile
-```dockerfile
-FROM python:3.10-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app/ .
-RUN mkdir -p /app/models
-VOLUME ["/app/models"]
-CMD ["prediction_service.py"]
-```
-
-## Scripts de Utilidad
-
-### buildall.sh
-Construye las imágenes Docker necesarias:
-- Servicio de predicción
-- Descarga imágenes de Kafka y Zookeeper
-
-### runall.sh
-Inicia los contenedores en el siguiente orden:
-1. Crea red Docker `microservices-net`
-2. Inicia Zookeeper
-3. Inicia Kafka
-4. Inicia el servicio de predicción
-
-## Requisitos
-
-- Docker
-- Python 3.10+
-- Modelo ML entrenado (formato .pkl)
-
-## Uso
-
-1. Construir las imágenes:
+### 1. Crear Red Docker
 ```bash
-./docker/buildall.sh
+docker network create microservices-net
 ```
 
-2. Iniciar los servicios:
+### 2. Iniciar Zookeeper
 ```bash
-./docker/runall.sh
+docker run -d \
+    --name zookeeper \
+    --network microservices-net \
+    -p 2181:2181 \
+    -e ZOOKEEPER_CLIENT_PORT=2181 \
+    -e ZOOKEEPER_TICK_TIME=2000 \
+    confluentinc/cp-zookeeper:latest
 ```
 
-3. Ejecutar el cliente:
+### 3. Iniciar Kafka
+```bash
+docker run -d \
+    --name kafka \
+    --network microservices-net \
+    -p 29092:29092 \
+    -e KAFKA_BROKER_ID=1 \
+    -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 \
+    -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092 \
+    -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT \
+    -e KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT \
+    -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092 \
+    -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+    confluentinc/cp-kafka:latest
+```
+
+### 4. Construir la Imagen del Servicio
+```bash
+docker build -t microservicio-kafka:1.0 -f docker/Dockerfile .
+```
+
+### 5. Iniciar el Servicio de Predicción
+```bash
+docker run -d \
+    --name prediction-service \
+    --network microservices-net \
+    -v $(pwd)/models:/app/models \
+    -e KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
+    microservicio-kafka:1.0
+```
+
+### 6. Detener y Limpiar
+Para detener y eliminar todos los contenedores:
+```bash
+docker stop prediction-service kafka zookeeper
+docker rm prediction-service kafka zookeeper
+docker network rm microservices-net
+```
+
+## Puertos y Networking
+
+Los servicios utilizan los siguientes puertos:
+- Zookeeper: 2181 (expuesto al host)
+- Kafka: 9092 (interno), 29092 (expuesto al host)
+- Servicio de Predicción: 8080 (métricas)
+
+La comunicación entre contenedores se realiza a través de la red Docker `microservices-net`.
+
+## Uso del Cliente
+
+1. Asegúrate de tener el modelo ML en el directorio `models/`:
+```bash
+cp tu_modelo.pkl models/random_forest_model.pkl
+```
+
+2. El cliente se ejecuta desde el host, no desde Docker. Usa la configuración:
+```python
+producer_conf = {
+    'bootstrap.servers': 'localhost:29092'  # Puerto expuesto de Kafka
+}
+```
+
+3. Ejecuta el cliente:
 ```bash
 python app/prediction_client.py
 ```
@@ -102,4 +133,3 @@ python app/prediction_client.py
 - El servicio espera un modelo de Random Forest con 13 características de entrada
 - Los contenedores se comunican a través de la red `microservices-net`
 - El modelo debe montarse como volumen en `/app/models`
-```

@@ -32,28 +32,28 @@ GRP/
 
 ### 1. Construcción de la Imagen Docker
 
-El Dockerfile está configurado para:
-- Usar Python 3.10-slim como imagen base
-- Instalar dependencias necesarias del sistema
-- Configurar variables de entorno para el servicio gRPC
-- Copiar e instalar los requisitos de Python
-- Configurar el directorio de trabajo y los archivos del servicio
-
-### 2. Scripts de Automatización
-
-#### Construir la imagen
 ```bash
-cd docker && chmod +x *.sh && ./buildAll.sh
+# Desde la raíz del proyecto
+docker build -t microservicio-grpc:1.0 -f docker/Dockerfile .
 ```
 
-#### Iniciar el servicio
+### 2. Ejecución del Contenedor
+
 ```bash
-./runAll.sh
+docker run -d \
+    --name wine-predictor \
+    -p 50051:50051 \
+    -v "$(pwd)/models:/app/models" \
+    -e GRPC_PORT=50051 \
+    -e MODEL_PATH=/app/models/random_forest_model.pkl \
+    microservicio-grpc:1.0
 ```
 
-#### Detener el servicio
+### 3. Detener el Contenedor
+
 ```bash
-./stopAll.sh
+docker stop wine-predictor
+docker rm wine-predictor
 ```
 
 ## 📦 Dependencias Principales
@@ -89,22 +89,21 @@ mkdir -p models
 
 2. Construir e iniciar el servicio:
 ```bash
-cd docker
-chmod +x *.sh
-./buildAll.sh
-./runAll.sh
+# Desde la raíz del proyecto
+docker build -t microservicio-grpc:1.0 -f docker/Dockerfile .
+docker run -d --name wine-predictor -p 50051:50051 -v "$(pwd)/models:/app/models" microservicio-grpc:1.0
 ```
 
 3. Probar el servicio:
 ```bash
-cd ../src
+cd src
 python test_client.py
 ```
 
 4. Detener el servicio:
 ```bash
-cd ../docker
-./stopAll.sh
+docker stop wine-predictor
+docker rm wine-predictor
 ```
 
 ## 🔍 Monitoreo

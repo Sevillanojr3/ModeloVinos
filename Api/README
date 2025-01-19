@@ -14,37 +14,40 @@ Servicio de clasificación de vinos implementado con FastAPI y desplegado median
 - Docker Engine (versión 20.10.0+)
 - Docker Compose (versión 2.0.0+)
 - 500MB de espacio en disco (mínimo)
+- Modelo entrenado (`random_forest_model.pkl`)
+
+## Estructura del Proyecto
+```
+Api/
+├── docker/
+│   ├── Dockerfile
+│   └── requirements.txt
+├── docker-compose.yaml
+├── api_app.py
+└── README
+```
 
 ## Instalación y Despliegue
 
-### 1. Clonar el Repositorio
+### 1. Construir la Imagen
 ```bash
-git clone <repositorio>
-cd <directorio-proyecto>
+# Desde la raíz del proyecto
+docker build -t fastapi-wine-classifier:1.0 -f Api/docker/Dockerfile .
 ```
 
-### 2. Configuración
-Asegúrate de tener los siguientes archivos en el directorio del proyecto:
-- `docker-compose.yaml`
-- `random_forest_model.pkl`
-
-### 3. Variables de Entorno
-El servicio utiliza las siguientes variables de entorno (pre-configuradas en docker-compose):
-```env
-APP_ENV=production
-APP_PORT=8000
-```
-
-### 4. Despliegue
+### 2. Desplegar con Docker Compose
 ```bash
 # Iniciar el servicio
-docker-compose up -d
+docker-compose -f Api/docker-compose.yaml up -d
 
 # Verificar el estado
-docker-compose ps
+docker-compose -f Api/docker-compose.yaml ps
+
+# Ver logs
+docker-compose -f Api/docker-compose.yaml logs -f
 
 # Detener el servicio
-docker-compose down
+docker-compose -f Api/docker-compose.yaml down
 ```
 
 ## Uso del Servicio
@@ -58,8 +61,8 @@ curl http://localhost:8000/health
 Respuesta esperada:
 ```json
 {
-    "status": "healthy",
-    "timestamp": "2024-XX-XX XX:XX:XX"
+    "status": "OK",
+    "message": "El servicio está funcionando correctamente"
 }
 ```
 
@@ -79,9 +82,17 @@ curl -X POST "http://localhost:8000/predict" \
            "proanthocyanins": 1.86,
            "color_intensity": 4.38,
            "hue": 1.05,
-           "od280_od315_of_diluted_wines": 2.95,
+           "od280_od315": 2.95,
            "proline": 1045
          }'
+```
+
+Respuesta esperada:
+```json
+{
+    "prediction": 1,
+    "wine_type": "Tipo 1 - Vino de alta calidad"
+}
 ```
 
 ## Monitoreo y Mantenimiento
@@ -89,35 +100,35 @@ curl -X POST "http://localhost:8000/predict" \
 ### Logs
 ```bash
 # Ver logs en tiempo real
-docker-compose logs -f wine-classifier
+docker-compose -f Api/docker-compose.yaml logs -f
 
 # Ver últimas 100 líneas
-docker-compose logs --tail 100 wine-classifier
+docker-compose -f Api/docker-compose.yaml logs --tail 100
 ```
 
 ### Healthcheck
-El servicio incluye healthchecks automáticos:
+El servicio incluye healthchecks automáticos configurados en docker-compose.yaml:
 - Intervalo: 30 segundos
 - Timeout: 10 segundos
-- Reintentos: 3
+- Retries: 3
 
 ### Actualización del Servicio
 ```bash
 # Actualizar a nueva versión
-docker-compose down
-docker-compose pull
-docker-compose up -d
+docker-compose -f Api/docker-compose.yaml down
+docker build -t fastapi-wine-classifier:1.0 -f Api/docker/Dockerfile .
+docker-compose -f Api/docker-compose.yaml up -d
 ```
 
 ## Configuración Técnica
 
 ### Networking
-- **Red**: microservices-net
+- **Red**: microservices-net (creada automáticamente por Docker Compose)
 - **Tipo**: bridge
 - **Alias**: fastapi-service
 
 ### Volúmenes
-- Modelo ML: `./random_forest_model.pkl:/app/random_forest_model.pkl`
+- Modelo ML: montado desde la ubicación local del modelo a `/app/random_forest_model.pkl`
 
 ### Puertos
 - Externo: 8000
@@ -129,19 +140,21 @@ docker-compose up -d
 
 1. **El servicio no inicia**
    ```bash
-   docker-compose logs wine-classifier
+   docker-compose -f Api/docker-compose.yaml logs
    ```
    Verificar:
-   - Existencia del archivo del modelo
-   - Puertos disponibles
+   - Existencia del archivo del modelo en la ruta correcta
+   - Puerto 8000 disponible
+   - Permisos de lectura del modelo
 
 2. **Error en predicciones**
    - Verificar formato del JSON de entrada
-   - Validar rangos de valores
+   - Validar que todos los campos requeridos estén presentes
+   - Comprobar que los valores estén en rangos válidos
 
 ### Reinicio del Servicio
 ```bash
-docker-compose restart wine-classifier
+docker-compose -f Api/docker-compose.yaml restart
 ```
 
 ## Seguridad
