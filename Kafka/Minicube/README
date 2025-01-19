@@ -1,0 +1,154 @@
+# Despliegue de Kafka en Kubernetes (Minikube)
+
+Este proyecto contiene la configuración necesaria para desplegar un cluster de Kafka con Zookeeper en Kubernetes utilizando Minikube.
+
+## Estructura del Proyecto
+
+```
+Kafka/
+└── Minikube/
+    ├── kafka.yaml        # Configuración del broker Kafka
+    ├── zookeeper.yaml    # Configuración de Zookeeper
+    ├── Persist.yaml      # Configuración de volúmenes persistentes
+    └── README.md         # Este archivo
+```
+
+## Prerrequisitos
+
+- Minikube instalado y funcionando
+- kubectl configurado
+- Docker instalado (opcional, pero recomendado)
+
+## Componentes
+
+### 1. Volúmenes Persistentes (Persist.yaml)
+- Configura el almacenamiento persistente para:
+  - Datos de Zookeeper (1Gi)
+  - Logs de Zookeeper (1Gi)
+  - Datos de Kafka (2Gi)
+
+### 2. Zookeeper (zookeeper.yaml)
+- Deployment con 1 réplica
+- Service tipo ClusterIP
+- Puerto expuesto: 2181
+- Volúmenes montados para datos y logs
+
+### 3. Kafka (kafka.yaml)
+- Deployment con 1 réplica
+- Service tipo NodePort
+- Puertos expuestos:
+  - 9092 (interno)
+  - 29092 (externo - mismo host)
+  - 29093 (externo - host diferente)
+
+## Instalación
+
+1. Inicia Minikube:
+```bash
+minikube start
+```
+
+2. Configura la variable de entorno para la IP de Minikube:
+```bash
+export MINIKUBE_IP=$(minikube ip)
+```
+
+3. Aplica los archivos YAML en orden:
+```bash
+kubectl apply -f Persist.yaml
+kubectl apply -f zookeeper.yaml
+kubectl apply -f kafka.yaml
+```
+
+4. Verifica el despliegue:
+```bash
+kubectl get pods
+kubectl get services
+```
+
+## Configuración de Kafka
+
+El broker Kafka está configurado con:
+- Factor de replicación: 1 (para desarrollo)
+- Particiones por defecto: 3
+- Listeners configurados para acceso interno y externo
+- Conexión a Zookeeper mediante el service DNS interno
+
+## Acceso al Cluster
+
+### Desde dentro del cluster
+- Zookeeper: `zookeeper:2181`
+- Kafka: `kafka:9092`
+
+### Desde fuera del cluster
+- Mismo host: `localhost:29092`
+- Host diferente: `<MINIKUBE_IP>:29093`
+
+## Prueba de Funcionamiento
+
+1. Obtén la IP de Minikube:
+```bash
+minikube ip
+```
+
+2. Crea un topic de prueba:
+```bash
+kubectl exec -it <kafka-pod-name> -- kafka-topics.sh \
+    --create \
+    --topic test-topic \
+    --bootstrap-server localhost:9092 \
+    --partitions 3 \
+    --replication-factor 1
+```
+
+3. Lista los topics:
+```bash
+kubectl exec -it <kafka-pod-name> -- kafka-topics.sh \
+    --list \
+    --bootstrap-server localhost:9092
+```
+
+## Limpieza
+
+Para eliminar todos los recursos:
+```bash
+kubectl delete -f kafka.yaml
+kubectl delete -f zookeeper.yaml
+kubectl delete -f Persist.yaml
+```
+
+## Consideraciones
+
+- Esta configuración está pensada para desarrollo/pruebas
+- Para producción, considerar:
+  - Aumentar el número de réplicas
+  - Configurar alta disponibilidad
+  - Ajustar los recursos de CPU/memoria
+  - Implementar seguridad (TLS, autenticación)
+  - Configurar monitorización
+
+## Troubleshooting
+
+1. Si los pods no arrancan, verifica los logs:
+```bash
+kubectl logs <pod-name>
+```
+
+2. Para problemas de volúmenes:
+```bash
+kubectl describe pv
+kubectl describe pvc
+```
+
+3. Para problemas de red:
+```bash
+kubectl describe service kafka
+kubectl describe service zookeeper
+```
+
+## Referencias
+
+- [Documentación oficial de Kafka](https://kafka.apache.org/documentation/)
+- [Kubernetes Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/)
+- [Confluent Docker Images](https://docs.confluent.io/platform/current/installation/docker/image-reference.html)
+

@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+ # Servicio de clasificación de vinos con FastAPI
+ wine-classifier:
+   image: fastapi-wine-classifier:1.0    # Usando la imagen que ya tienes definida
+   container_name: wine-classifier        # Manteniendo el nombre del contenedor consistente
+   ports:
+     - "8000:8000"                       # Mapeo de puertos host:contenedor
+   environment:
+     - APP_ENV=production
+     - APP_PORT=8000
+   networks:
+     microservices-net:
+       aliases:
+         - fastapi-service               # Alias en la red para fácil referencia
+   volumes:
+     - ../random_forest_model.pkl:/app/random_forest_model.pkl    # Montando el modelo
+   healthcheck:
+     test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+     interval: 30s
+     timeout: 10s
+     retries: 3
+   restart: unless-stopped               # Reiniciar automáticamente si falla
+
+networks:
+ microservices-net:
+   name: microservices-net
+   driver: bridge

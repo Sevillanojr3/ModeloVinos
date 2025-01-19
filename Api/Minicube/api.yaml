@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wine-classifier
+  labels:
+    app: wine-classifier
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: wine-classifier
+  template:
+    metadata:
+      labels:
+        app: wine-classifier
+    spec:
+      containers:
+      - name: wine-classifier
+        image: fastapi-wine-classifier:1.0
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "100Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        volumeMounts:
+        - name: model-volume
+          mountPath: /app/random_forest_model.pkl
+          subPath: random_forest_model.pkl
+      volumes:
+      - name: model-volume
+        hostPath:
+          path: /mnt/c/Users/jesus/Desarrollo/KAG-CLoud/random_forest_model.pkl
+          type: File
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wine-classifier-service
+spec:
+  type: NodePort
+  selector:
+    app: wine-classifier
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30000

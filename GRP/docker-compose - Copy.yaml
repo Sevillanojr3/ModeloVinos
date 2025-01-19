@@ -1,0 +1,36 @@
+version: '3.8'
+services:
+ # Servicio de predicción de vinos usando gRPC
+ wine-predictor:
+   # Usar la imagen construida localmente
+   image: microservicio-grpc:1.0
+   
+   # Nombre del contenedor para fácil referencia
+   container_name: wine-predictor
+   
+   # Mapeo de puertos (host:contenedor)
+   ports:
+     - "50051:50051"
+   
+   # Variables de entorno para la configuración del servicio
+   environment:
+     - GRPC_PORT=50051
+     - APP_ENV=production
+     - MODEL_PATH=/app/models/random_forest_model.pkl
+     - PYTHONUNBUFFERED=1
+   
+   # Volumen para cargar modelos de ML
+   volumes:
+     - ./models:/app/models
+   
+   # Configuración de red
+   networks:
+     microservices-net:
+       aliases:
+         - wine-predictor
+# Definición de redes
+etworks:
+ microservices-net:
+   name: microservices-net
+   # Si la red ya existe, usarla; si no, crearla
+   external: true

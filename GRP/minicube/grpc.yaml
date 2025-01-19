@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wine-predictor
+  labels:
+    app: wine-predictor
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: wine-predictor
+  template:
+    metadata:
+      labels:
+        app: wine-predictor
+    spec:
+      containers:
+      - name: wine-predictor
+        image: microservicio-grpc:1.0
+        ports:
+        - containerPort: 50051
+          name: grpc
+        resources:
+          requests:
+            cpu: 10m
+            memory: 50Mi
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          grpc:
+            port: 50051
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          grpc:
+            port: 50051
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        volumeMounts:
+        - name: model-volume
+          mountPath: /app/models
+      volumes:
+      - name: model-volume
+        hostPath:
+          path: /models
+          type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wine-predictor-service
+spec:
+  type: NodePort
+  selector:
+    app: wine-predictor
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP

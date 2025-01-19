@@ -1,0 +1,105 @@
+```markdown
+# Microservicio de Predicción con Kafka y Docker
+
+Este proyecto implementa un microservicio de predicción utilizando Apache Kafka para la comunicación asíncrona y Docker para la contenerización.
+
+## Estructura del Proyecto
+
+```
+Kafka/
+├── app/
+│   ├── prediction_client.py    # Cliente para enviar solicitudes
+│   └── prediction_service.py   # Servicio de predicción
+├── docker/
+│   ├── Dockerfile             # Configuración de la imagen Docker
+│   ├── buildall.sh           # Script para construir imágenes
+│   ├── runall.sh             # Script para ejecutar contenedores
+│   └── requirements.txt       # Dependencias Python
+└── models/                    # Directorio para modelos ML
+```
+
+## Componentes Principales
+
+### Servicio de Predicción
+- Implementado en `prediction_service.py`
+- Consume mensajes del topic `prediction_requests`
+- Procesa predicciones usando un modelo ML
+- Envía resultados al topic `prediction_results`
+
+### Cliente de Predicción
+- Implementado en `prediction_client.py`
+- Envía solicitudes de predicción
+- Escucha respuestas del servicio
+
+## Configuración Docker
+
+### Dockerfile
+```dockerfile
+FROM python:3.10-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app/ .
+RUN mkdir -p /app/models
+VOLUME ["/app/models"]
+CMD ["prediction_service.py"]
+```
+
+## Scripts de Utilidad
+
+### buildall.sh
+Construye las imágenes Docker necesarias:
+- Servicio de predicción
+- Descarga imágenes de Kafka y Zookeeper
+
+### runall.sh
+Inicia los contenedores en el siguiente orden:
+1. Crea red Docker `microservices-net`
+2. Inicia Zookeeper
+3. Inicia Kafka
+4. Inicia el servicio de predicción
+
+## Requisitos
+
+- Docker
+- Python 3.10+
+- Modelo ML entrenado (formato .pkl)
+
+## Uso
+
+1. Construir las imágenes:
+```bash
+./docker/buildall.sh
+```
+
+2. Iniciar los servicios:
+```bash
+./docker/runall.sh
+```
+
+3. Ejecutar el cliente:
+```bash
+python app/prediction_client.py
+```
+
+## Variables de Entorno
+
+- `KAFKA_BOOTSTRAP_SERVERS`: Dirección del broker Kafka
+- `MODEL_PATH`: Ruta al modelo ML
+- `REQUEST_TOPIC`: Topic para solicitudes
+- `RESPONSE_TOPIC`: Topic para respuestas
+
+## Dependencias Principales
+
+- confluent-kafka: Cliente Kafka
+- scikit-learn: Biblioteca ML
+- joblib: Carga de modelos
+- numpy: Procesamiento numérico
+- fastapi: API REST (opcional)
+- grpcio: Soporte gRPC (opcional)
+
+## Notas
+- El servicio espera un modelo de Random Forest con 13 características de entrada
+- Los contenedores se comunican a través de la red `microservices-net`
+- El modelo debe montarse como volumen en `/app/models`
+```

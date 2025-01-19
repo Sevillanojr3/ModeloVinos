@@ -1,0 +1,80 @@
+version: '3.8'
+# Definición de la red para los microservicios
+networks:
+ microservices-net:
+   name: microservices-net
+   external: true
+# Definición de los servicios
+services:
+ # Servicio de Zookeeper
+ zookeeper:
+   image: confluentinc/cp-zookeeper:latest
+   container_name: zookeeper-service
+   networks:
+     - microservices-net
+   ports:
+     - "22181:2181"
+   environment:
+     ZOOKEEPER_CLIENT_PORT: 2181
+     ZOOKEEPER_TICK_TIME: 2000
+   volumes:
+     - ./Kafka/kafka-storage/zookeeper/data:/var/lib/zookeeper/data
+     - ./Kafka/kafka-storage/zookeeper/log:/var/lib/zookeeper/log
+   healthcheck:
+     test: ["CMD", "nc", "-z", "localhost", "2181"]
+     interval: 30s
+     timeout: 10s
+     retries: 3
+  # Servicio de Kafka
+ kafka:
+   image: confluentinc/cp-kafka:latest
+   container_name: kafka-service
+   networks:
+     - microservices-net
+   ports:
+     - "29092:29092"
+     - "29093:29093"
+     - "9092:9092"
+   depends_on:
+     - zookeeper
+   environment:
+     KAFKA_BROKER_ID: 1
+     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+     KAFKA_LISTENERS: EXTERNAL_SAME_HOST://:29092,EXTERNAL_DIFFERENT_HOST://:29093,INTERNAL://:9092
+     KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL_SAME_HOST://localhost:29092,EXTERNAL_DIFFERENT_HOST://192.168.5.242:29093
+     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL_SAME_HOST:PLAINTEXT,EXTERNAL_DIFFERENT_HOST:PLAINTEXT
+     KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+     # Configuraciones adicionales para rendimiento y confiabilidad
+     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+     KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+     KAFKA_NUM_PARTITIONS: 3
+     KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+   volumes:
+     - ./Kafka/kafka-storage/kafka/data:/var/lib/kafka/data
+     - ./Kafka/kafka-storage/kafka/secrets:/etc/kafka/secrets
+   healthcheck:
+     test: ["CMD", "nc", "-z", "localhost", "9092"]
+     interval: 30s
+     timeout: 10s
+     retries: 3
+  # Servicio de Kafdrop para monitoreo
+ kafdrop:
+   image: obsidiandynamics/kafdrop:latest
+   container_name: kafdrop-service
+   networks:
+     - microservices-net
+   ports:
+     - "9000:9000"
+   depends_on:
+     - kafka
+   environment:
+     KAFKA_BROKERCONNECT: kafka:9092
+     JVM_OPTS: "-Xms32M -Xmx64M"
+     SERVER_SERVLET_CONTEXTPATH: "/"
+   healthcheck:
+     test: ["CMD", "wget", "--spider", "-q", "http://localhost:9000"]
+     interval: 30s
+     timeout: 10s
+     retries: 3

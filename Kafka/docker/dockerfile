@@ -1,0 +1,31 @@
+# Imagen base ligera
+FROM python:3.10-slim
+
+# Variables de entorno
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
+    MODEL_PATH=/app/models/random_forest_model.pkl \
+    REQUEST_TOPIC=prediction_requests \
+    RESPONSE_TOPIC=prediction_results
+
+# Directorio de trabajo
+WORKDIR /app
+
+# Instalación de dependencias
+COPY docker/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiamos el código fuente
+COPY app/*.py .
+
+# Creamos el directorio para los modelos
+RUN mkdir -p /app/models
+
+# Volumen para los modelos
+VOLUME ["/app/models"]
+
+# Puerto para métricas (si se necesita en el futuro)
+EXPOSE 8080
+
+# Comando para ejecutar el servicio
+ENTRYPOINT ["python"]
+CMD ["prediction_service.py"]

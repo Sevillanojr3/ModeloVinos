@@ -1,0 +1,25 @@
+Ejecutar la api_app
+cd /mnt/c/Users/jesus/Desarrollo/KAG-CLoud
+uvicorn Api.api_app:app --reload --port 8000
+
+Health check
+curl http://localhost:8000/health
+
+Predict
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "alcohol": 12.72,
+           "malic_acid": 1.81,
+           "ash": 2.2,
+           "alcalinity_of_ash": 18.8,
+           "magnesium": 86.0,
+           "total_phenols": 2.2,
+           "flavanoids": 2.53,
+           "nonflavanoid_phenols": 0.26,
+           "proanthocyanins": 1.77,
+           "color_intensity": 3.9,
+           "hue": 1.16,
+           "od280_od315": 3.14,
+           "proline": 714.0
+         }'

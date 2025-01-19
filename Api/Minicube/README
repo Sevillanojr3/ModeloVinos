@@ -1,0 +1,195 @@
+```markdown
+# Clasificador de Vinos - Despliegue en Kubernetes
+
+Este proyecto implementa un servicio de clasificación de vinos utilizando FastAPI y se despliega en Kubernetes (Minikube). El servicio utiliza un modelo de Random Forest para clasificar vinos en diferentes categorías.
+
+## Prerrequisitos
+
+- Docker instalado
+- Minikube instalado
+- kubectl instalado
+- Python 3.10 o superior (para desarrollo local)
+
+## Estructura del Proyecto
+
+```
+.
+├── Api/
+│   ├── api_app.py              # Aplicación FastAPI
+│   ├── docker/
+│   │   ├── dockerfile         # Configuración de Docker
+│   │   ├── requirements.txt   # Dependencias Python
+│   │   ├── runAll.sh         # Script para ejecutar Docker
+│   │   └── stopAll.sh        # Script para detener Docker
+│   └── api.yaml              # Configuración Kubernetes
+├── random_forest_model.pkl    # Modelo entrenado
+└── README.md
+```
+
+## Configuración del Entorno
+
+1. **Iniciar Minikube**
+```bash
+minikube start
+```
+
+2. **Construir la Imagen Docker**
+```bash
+# Cambiar al entorno Docker de Minikube
+eval $(minikube docker-env)
+
+# Construir la imagen
+docker build -t fastapi-wine-classifier:1.0 -f Api/docker/dockerfile .
+```
+
+3. **Verificar la Imagen**
+```bash
+docker images | grep fastapi-wine-classifier
+```
+
+## Despliegue en Kubernetes
+
+1. **Aplicar la Configuración**
+```bash
+kubectl apply -f Api/api.yaml
+```
+
+2. **Verificar el Despliegue**
+```bash
+# Verificar el deployment
+kubectl get deployments
+
+# Verificar los pods
+kubectl get pods
+
+# Verificar el servicio
+kubectl get services
+```
+
+3. **Acceder al Servicio**
+```bash
+# Obtener la URL del servicio
+minikube service wine-classifier-service --url
+
+# Probar el endpoint de salud
+curl $(minikube service wine-classifier-service --url)/health
+```
+
+## Pruebas del Servicio
+
+1. **Verificar el Estado de Salud**
+```bash
+curl http://<service-url>/health
+```
+
+2. **Realizar una Predicción**
+```bash
+curl -X POST "http://<service-url>/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "alcohol": 12.72,
+           "malic_acid": 1.81,
+           "ash": 2.2,
+           "alcalinity_of_ash": 18.8,
+           "magnesium": 86.0,
+           "total_phenols": 2.2,
+           "flavanoids": 2.53,
+           "nonflavanoid_phenols": 0.26,
+           "proanthocyanins": 1.77,
+           "color_intensity": 3.9,
+           "hue": 1.16,
+           "od280_od315": 3.14,
+           "proline": 714.0
+         }'
+```
+
+## Monitoreo y Mantenimiento
+
+1. **Ver Logs de los Pods**
+```bash
+# Obtener el nombre del pod
+kubectl get pods
+
+# Ver logs
+kubectl logs <nombre-del-pod>
+```
+
+2. **Escalar el Deployment**
+```bash
+# Cambiar el número de réplicas
+kubectl scale deployment wine-classifier --replicas=5
+```
+
+3. **Actualizar la Aplicación**
+```bash
+# Actualizar la imagen
+kubectl set image deployment/wine-classifier wine-classifier=fastapi-wine-classifier:2.0
+```
+
+## Limpieza
+
+Para eliminar todos los recursos creados:
+
+```bash
+# Eliminar el deployment y el servicio
+kubectl delete -f Api/api.yaml
+
+# Detener Minikube (opcional)
+minikube stop
+```
+
+## Configuración de Recursos
+
+El deployment está configurado con los siguientes límites de recursos:
+
+- **Requests:**
+  - CPU: 10m
+  - Memoria: 50Mi
+  
+- **Limits:**
+  - CPU: 100m
+  - Memoria: 100Mi
+
+## Pruebas de Salud
+
+- **Liveness Probe:**
+  - Path: /health
+  - Puerto: 8000
+  - Delay inicial: 30s
+  - Período: 10s
+  - Timeout: 5s
+
+- **Readiness Probe:**
+  - Path: /health
+  - Puerto: 8000
+  - Delay inicial: 20s
+  - Período: 10s
+
+## Solución de Problemas
+
+1. **Si los pods no inician:**
+```bash
+kubectl describe pod <nombre-del-pod>
+```
+
+2. **Si el servicio no es accesible:**
+```bash
+kubectl describe service wine-classifier-service
+```
+
+3. **Para reiniciar el deployment:**
+```bash
+kubectl rollout restart deployment wine-classifier
+```
+
+## Notas Adicionales
+
+- El servicio está expuesto como NodePort en el puerto 30000
+- Se utiliza una estrategia de RollingUpdate para las actualizaciones
+- El modelo se monta como un volumen desde el host
+- Asegúrate de que el archivo del modelo esté en la ubicación correcta
+
+## Contribuciones
+
+Las contribuciones son bienvenidas. Por favor, abre un issue primero para discutir los cambios que te gustaría realizar.
+```

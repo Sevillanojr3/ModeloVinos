@@ -1,0 +1,180 @@
+# Microservicio de Predicción de Vinos con gRPC
+
+Este proyecto implementa un microservicio de predicción de vinos utilizando gRPC y se despliega en un clúster de Kubernetes (Minikube). El servicio utiliza un modelo de Machine Learning para predecir la calidad del vino basado en sus características químicas.
+
+## Estructura del Proyecto
+
+```
+GRP/
+├── docker/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── buildAll.sh
+│   ├── runAll.sh
+│   └── stopAll.sh
+├── models/
+│   └── random_forest_model.pkl
+├── wine_service.proto
+├── grp_app.py
+├── test_client.py
+├── wine_service_pb2.py
+├── wine_service_pb2_grpc.py
+├── docker-compose.yaml
+└── k8s-grpc-deployment.yaml
+```
+
+## Componentes Principales
+
+### 1. Definición del Servicio gRPC
+El archivo `wine_service.proto` define la interfaz del servicio:
+- `PredictWine`: Método para predecir la calidad del vino
+- `CheckHealth`: Método para verificar el estado del servicio
+
+### 2. Servidor gRPC
+`grp_app.py` implementa la lógica del servidor:
+- Carga el modelo de ML
+- Procesa las solicitudes de predicción
+- Proporciona health checks
+
+### 3. Cliente de Prueba
+`test_client.py` permite probar el servicio:
+- Realiza health checks
+- Envía solicitudes de predicción
+
+### 4. Containerización
+
+#### Docker
+```bash
+# Construir la imagen
+cd docker
+./buildAll.sh
+
+# Ejecutar el contenedor
+./runAll.sh
+
+# Detener el contenedor
+./stopAll.sh
+```
+
+#### Docker Compose
+```bash
+docker-compose up -d
+```
+
+### 5. Despliegue en Kubernetes
+
+```bash
+# Iniciar Minikube
+minikube start
+
+# Cargar la imagen en Minikube
+minikube image load microservicio-grpc:1.0
+
+# Aplicar la configuración
+kubectl apply -f k8s-grpc-deployment.yaml
+
+# Verificar el despliegue
+kubectl get pods
+kubectl get services
+```
+
+## Configuración de Kubernetes
+
+El archivo `k8s-grpc-deployment.yaml` define:
+
+### Deployment
+- 4 réplicas del servicio
+- Estrategia RollingUpdate
+- Recursos limitados:
+  - Requests: CPU 10m, Memoria 50Mi
+  - Límites: CPU 100m, Memoria 100Mi
+- Health checks:
+  - Liveness probe
+  - Readiness probe
+
+### Service
+- Tipo NodePort
+- Expone el puerto 50051
+
+## Pruebas
+
+1. **Verificar el servicio**:
+```bash
+kubectl get services wine-predictor-service
+```
+
+2. **Obtener la URL del servicio**:
+```bash
+minikube service wine-predictor-service --url
+```
+
+3. **Ejecutar el cliente de prueba**:
+```bash
+python test_client.py
+```
+
+## Monitoreo
+
+```bash
+# Ver logs de los pods
+kubectl logs -l app=wine-predictor
+
+# Verificar estado de los pods
+kubectl describe pods -l app=wine-predictor
+```
+
+## Escalado
+
+```bash
+# Escalar el número de réplicas
+kubectl scale deployment wine-predictor --replicas=6
+```
+
+## Requisitos
+
+- Docker
+- Kubernetes/Minikube
+- Python 3.10+
+- gRPC
+- scikit-learn
+
+## Dependencias Python
+
+```
+grpcio==1.68.1
+grpcio-tools==1.68.1
+numpy==1.26.4
+scikit-learn==1.4.1.post1
+joblib==1.3.2
+```
+
+## Notas Importantes
+
+1. Asegúrate de que el modelo ML esté disponible en la ruta correcta
+2. El servicio requiere acceso al directorio de modelos
+3. Los health checks deben estar implementados correctamente en el servidor gRPC
+4. Los recursos asignados pueden necesitar ajustes según el uso
+
+## Solución de Problemas
+
+1. **Pods en estado CrashLoopBackOff**:
+   - Verificar logs: `kubectl logs <pod-name>`
+   - Comprobar la ruta del modelo
+   - Verificar recursos asignados
+
+2. **Servicio no accesible**:
+   - Verificar estado del service: `kubectl describe service wine-predictor-service`
+   - Comprobar endpoints: `kubectl get endpoints`
+
+3. **Problemas de rendimiento**:
+   - Monitorear uso de recursos
+   - Ajustar límites según sea necesario
+
+## Contribuciones
+
+Las contribuciones son bienvenidas. Por favor, sigue estos pasos:
+1. Fork el repositorio
+2. Crea una rama para tu feature
+3. Commit tus cambios
+4. Push a la rama
+5. Crea un Pull Request

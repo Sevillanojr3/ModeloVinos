@@ -1,0 +1,109 @@
+```markdown
+# Configuración de Kafka con Docker Compose
+
+Este documento describe la configuración de un cluster de Kafka usando Docker Compose, incluyendo Zookeeper y Kafdrop para monitoreo.
+
+## Estructura del Docker Compose
+
+El archivo `docker-compose.yaml` define tres servicios principales:
+- Zookeeper: Para la coordinación del cluster
+- Kafka: El broker de mensajería
+- Kafdrop: Interfaz web para monitoreo
+
+## Servicios
+
+### Zookeeper
+```yaml
+ports:
+  - "22181:2181"
+environment:
+  ZOOKEEPER_CLIENT_PORT: 2181
+  ZOOKEEPER_TICK_TIME: 2000
+```
+- Puerto expuesto: 22181
+- Almacenamiento persistente en `./Kafka/kafka-storage/zookeeper/`
+- Healthcheck cada 30 segundos
+
+### Kafka
+```yaml
+ports:
+  - "29092:29092"  # Mismo host
+  - "29093:29093"  # Host diferente
+  - "9092:9092"    # Interno
+```
+
+#### Configuración de Listeners
+- INTERNAL: `kafka:9092` (comunicación entre contenedores)
+- EXTERNAL_SAME_HOST: `localhost:29092` (acceso local)
+- EXTERNAL_DIFFERENT_HOST: `192.168.5.242:29093` (acceso remoto)
+
+#### Configuraciones Importantes
+- Broker ID: 1
+- Factor de replicación: 1
+- Particiones por defecto: 3
+- Auto-creación de topics: habilitado
+
+### Kafdrop
+```yaml
+ports:
+  - "9000:9000"
+environment:
+  KAFKA_BROKERCONNECT: kafka:9092
+  JVM_OPTS: "-Xms32M -Xmx64M"
+```
+- Interfaz web accesible en `http://localhost:9000`
+- Memoria JVM optimizada para contenedor
+
+## Almacenamiento Persistente
+
+Volúmenes montados para datos persistentes:
+```yaml
+volumes:
+  - ./Kafka/kafka-storage/zookeeper/data:/var/lib/zookeeper/data
+  - ./Kafka/kafka-storage/zookeeper/log:/var/lib/zookeeper/log
+  - ./Kafka/kafka-storage/kafka/data:/var/lib/kafka/data
+  - ./Kafka/kafka-storage/kafka/secrets:/etc/kafka/secrets
+```
+
+## Red
+
+Todos los servicios se comunican a través de la red `microservices-net`:
+```yaml
+networks:
+  microservices-net:
+    name: microservices-net
+```
+
+## Monitoreo de Salud
+
+Cada servicio incluye healthchecks:
+- Intervalo: 30 segundos
+- Timeout: 10 segundos
+- Reintentos: 3
+
+## Uso
+
+1. Iniciar los servicios:
+```bash
+docker-compose up -d
+```
+
+2. Verificar estado:
+```bash
+docker-compose ps
+```
+
+3. Acceder a Kafdrop:
+- Abrir navegador en `http://localhost:9000`
+
+4. Detener servicios:
+```bash
+docker-compose down
+```
+
+## Notas
+- La configuración está optimizada para desarrollo local
+- Múltiples listeners permiten diferentes tipos de acceso
+- Kafdrop proporciona una interfaz visual para gestión
+- Los datos persisten entre reinicios en ./Kafka/kafka-storage/
+```

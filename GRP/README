@@ -1,0 +1,121 @@
+
+````markdown
+# Docker Compose para Servicio gRPC de Predicción de Vinos
+
+Este documento describe la configuración del servicio gRPC usando Docker Compose para el predictor de calidad de vinos.
+
+## Estructura del Docker Compose
+
+El archivo `docker-compose.yaml` define la configuración para el servicio de predicción:
+
+````yaml
+version: '3.8'
+services:
+  wine-predictor:
+    image: microservicio-grpc:1.0
+    ports:
+      - "50051:50051"
+````
+
+## Configuración del Servicio
+
+### Wine Predictor Service
+
+#### Puertos
+- Expone el puerto `50051` para comunicación gRPC
+- Mapeo: `50051:50051` (host:contenedor)
+
+#### Variables de Entorno
+````yaml
+environment:
+  - GRPC_PORT=50051
+  - APP_ENV=production
+  - MODEL_PATH=/app/models/random_forest_model.pkl
+  - PYTHONUNBUFFERED=1
+````
+
+#### Volúmenes
+````yaml
+volumes:
+  - ./models:/app/models
+````
+- Monta el directorio local `./models` en `/app/models` del contenedor
+- Permite cargar modelos ML sin reconstruir la imagen
+
+#### Networking
+````yaml
+networks:
+  microservices-net:
+    aliases:
+      - wine-predictor
+````
+- Usa la red `microservices-net`
+- Alias para fácil descubrimiento de servicios
+
+## Uso
+
+1. Asegúrate de tener la imagen construida:
+````bash
+docker build -t microservicio-grpc:1.0 .
+````
+
+2. Inicia el servicio:
+````bash
+docker-compose up -d
+````
+
+3. Verifica el estado:
+````bash
+docker-compose ps
+````
+
+4. Detén el servicio:
+````bash
+docker-compose down
+````
+
+## Requisitos Previos
+
+- Imagen Docker `microservicio-grpc:1.0`
+- Modelo ML en el directorio `./models`
+- Red Docker `microservices-net` (se crea automáticamente si no existe)
+
+## Estructura de Directorios
+````
+.
+├── docker-compose.yaml
+├── models/
+│   └── random_forest_model.pkl
+└── README.md
+````
+
+## Notas Importantes
+
+- El servicio espera encontrar el modelo en `/app/models/random_forest_model.pkl`
+- La red `microservices-net` debe existir o se creará automáticamente
+- Los logs están habilitados con `PYTHONUNBUFFERED=1`
+- El servicio corre en modo producción (`APP_ENV=production`)
+
+## Monitoreo
+
+- El servicio está disponible en `localhost:50051`
+- Usa herramientas como `grpcurl` o `grpcui` para pruebas
+- Los logs se pueden ver con:
+````bash
+docker-compose logs -f wine-predictor
+````
+
+## Troubleshooting
+
+1. Si el servicio no inicia:
+   - Verifica que el puerto 50051 esté disponible
+   - Confirma que el modelo existe en ./models
+
+2. Problemas de red:
+   - Verifica la existencia de la red: `docker network ls`
+   - Recrea la red si es necesario: `docker network create microservices-net`
+
+3. Problemas de permisos:
+   - Verifica permisos del directorio models
+   - Asegura que el contenedor puede leer el modelo
+````

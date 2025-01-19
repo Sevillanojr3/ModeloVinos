@@ -1,0 +1,164 @@
+# Servicio de Clasificación de Vinos con FastAPI
+
+## Descripción
+Servicio de clasificación de vinos implementado con FastAPI y desplegado mediante Docker Compose. El servicio utiliza un modelo de Random Forest para realizar predicciones sobre la clasificación de vinos basado en sus características químicas.
+
+## Arquitectura
+- **Framework**: FastAPI
+- **Contenedorización**: Docker
+- **Orquestación**: Docker Compose
+- **Modelo**: Random Forest (scikit-learn)
+- **Red**: Bridge network dedicada
+
+## Requisitos Previos
+- Docker Engine (versión 20.10.0+)
+- Docker Compose (versión 2.0.0+)
+- 500MB de espacio en disco (mínimo)
+
+## Instalación y Despliegue
+
+### 1. Clonar el Repositorio
+```bash
+git clone <repositorio>
+cd <directorio-proyecto>
+```
+
+### 2. Configuración
+Asegúrate de tener los siguientes archivos en el directorio del proyecto:
+- `docker-compose.yaml`
+- `random_forest_model.pkl`
+
+### 3. Variables de Entorno
+El servicio utiliza las siguientes variables de entorno (pre-configuradas en docker-compose):
+```env
+APP_ENV=production
+APP_PORT=8000
+```
+
+### 4. Despliegue
+```bash
+# Iniciar el servicio
+docker-compose up -d
+
+# Verificar el estado
+docker-compose ps
+
+# Detener el servicio
+docker-compose down
+```
+
+## Uso del Servicio
+
+### Endpoints Disponibles
+
+#### Health Check
+```bash
+curl http://localhost:8000/health
+```
+Respuesta esperada:
+```json
+{
+    "status": "healthy",
+    "timestamp": "2024-XX-XX XX:XX:XX"
+}
+```
+
+#### Predicción
+```bash
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "alcohol": 12.72,
+           "malic_acid": 1.81,
+           "ash": 2.2,
+           "alcalinity_of_ash": 18.8,
+           "magnesium": 99,
+           "total_phenols": 2.6,
+           "flavanoids": 2.3,
+           "nonflavanoid_phenols": 0.26,
+           "proanthocyanins": 1.86,
+           "color_intensity": 4.38,
+           "hue": 1.05,
+           "od280_od315_of_diluted_wines": 2.95,
+           "proline": 1045
+         }'
+```
+
+## Monitoreo y Mantenimiento
+
+### Logs
+```bash
+# Ver logs en tiempo real
+docker-compose logs -f wine-classifier
+
+# Ver últimas 100 líneas
+docker-compose logs --tail 100 wine-classifier
+```
+
+### Healthcheck
+El servicio incluye healthchecks automáticos:
+- Intervalo: 30 segundos
+- Timeout: 10 segundos
+- Reintentos: 3
+
+### Actualización del Servicio
+```bash
+# Actualizar a nueva versión
+docker-compose down
+docker-compose pull
+docker-compose up -d
+```
+
+## Configuración Técnica
+
+### Networking
+- **Red**: microservices-net
+- **Tipo**: bridge
+- **Alias**: fastapi-service
+
+### Volúmenes
+- Modelo ML: `./random_forest_model.pkl:/app/random_forest_model.pkl`
+
+### Puertos
+- Externo: 8000
+- Interno: 8000
+
+## Solución de Problemas
+
+### Problemas Comunes
+
+1. **El servicio no inicia**
+   ```bash
+   docker-compose logs wine-classifier
+   ```
+   Verificar:
+   - Existencia del archivo del modelo
+   - Puertos disponibles
+
+2. **Error en predicciones**
+   - Verificar formato del JSON de entrada
+   - Validar rangos de valores
+
+### Reinicio del Servicio
+```bash
+docker-compose restart wine-classifier
+```
+
+## Seguridad
+- El servicio está configurado para ejecutarse en modo producción
+- Se recomienda implementar autenticación para el endpoint de predicción
+- Los logs no contienen información sensible
+
+## Contribución
+Para contribuir al proyecto:
+1. Fork del repositorio
+2. Crear rama feature (`git checkout -b feature/nueva-caracteristica`)
+3. Commit cambios (`git commit -am 'Añadir nueva característica'`)
+4. Push a la rama (`git push origin feature/nueva-caracteristica`)
+5. Crear Pull Request
+
+## Licencia
+[Especificar licencia]
+
+## Contacto
+[Información de contacto del equipo]

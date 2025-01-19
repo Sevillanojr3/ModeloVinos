@@ -1,0 +1,18 @@
+# Imagen base ligera de Python
+FROM python:3.10-slim
+# Variables de entorno
+ENV APP_ENV=production \
+    APP_PORT=8000
+# Directorio de trabajo en el contenedor
+WORKDIR /app
+# Copiar requirements.txt primero para aprovechar la caché de Docker
+COPY Api/docker/requirements.txt .
+# Instalar dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+# Copiar el código de la aplicación y el modelo
+COPY Api ./Api/
+COPY random_forest_model.pkl .
+# Puerto en el que se ejecutará la aplicación
+EXPOSE ${APP_PORT}
+# Comando para ejecutar la aplicación
+CMD ["uvicorn", "Api.api_app:app", "--host", "0.0.0.0", "--port", "8000"]

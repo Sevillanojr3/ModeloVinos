@@ -1,0 +1,109 @@
+# Clasificador de Vinos - Configuración Docker
+
+Este proyecto implementa una API REST con FastAPI para clasificar vinos, desplegada en contenedores Docker.
+
+## Estructura del Proyecto
+
+```
+Api/docker/
+├── Dockerfile
+├── buildAll.sh
+├── runAll.sh
+├── stopAll.sh
+└── requirements.txt
+```
+
+## Requisitos Previos
+
+- Docker instalado en el sistema
+- Python 3.10 o superior
+- Modelo entrenado (`random_forest_model.pkl`)
+
+## Scripts de Docker
+
+### 1. Construcción de la Imagen (buildAll.sh)
+Este script construye la imagen Docker del proyecto:
+```bash
+./buildAll.sh
+```
+- Crea una imagen con el nombre `fastapi-wine-classifier:1.0`
+- Utiliza el Dockerfile para definir la configuración
+
+### 2. Ejecución del Contenedor (runAll.sh)
+Este script inicia el contenedor:
+```bash
+./runAll.sh
+```
+Realiza las siguientes acciones:
+- Crea una red Docker llamada `microservices-net`
+- Detiene y elimina contenedores previos con el mismo nombre
+- Inicia un nuevo contenedor con:
+  - Nombre: `wine-classifier`
+  - Puerto: 8000
+  - Variables de entorno configuradas
+  - Conexión a la red de microservicios
+
+### 3. Detención del Servicio (stopAll.sh)
+Este script detiene y limpia los recursos:
+```bash
+./stopAll.sh
+```
+- Detiene y elimina el contenedor
+- Elimina la red Docker creada
+
+## Dockerfile
+
+El Dockerfile está configurado para:
+- Usar Python 3.10-slim como imagen base
+- Configurar variables de entorno para producción
+- Instalar dependencias desde requirements.txt
+- Copiar el código de la aplicación y el modelo
+- Exponer el puerto 8000
+- Ejecutar la aplicación con uvicorn
+
+## Uso de la API
+
+### Health Check
+```bash
+curl http://localhost:8000/health
+```
+
+### Predicción
+```bash
+curl -X POST "http://localhost:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "alcohol": 12.72,
+           "malic_acid": 1.81,
+           ...
+         }'
+```
+
+## Variables de Entorno
+
+- `APP_ENV`: Entorno de la aplicación (default: production)
+- `APP_PORT`: Puerto de la aplicación (default: 8000)
+
+## Dependencias
+
+Las principales dependencias están listadas en `requirements.txt`:
+- FastAPI
+- uvicorn
+- scikit-learn
+- numpy
+- pydantic
+
+## Red Docker
+
+El proyecto utiliza una red Docker dedicada llamada `microservices-net` para facilitar:
+- Aislamiento de servicios
+- Comunicación entre contenedores
+- Escalabilidad futura
+
+## Notas de Desarrollo
+
+- La imagen está optimizada para producción
+- Se implementa caché de capas Docker para optimizar builds
+- Los scripts incluyen manejo de errores básico
+- El contenedor se ejecuta en modo detached (-d)
+```

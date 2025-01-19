@@ -1,0 +1,122 @@
+```markdown
+# Servicio gRPC de Predicción de Vinos
+
+Este proyecto implementa un servicio gRPC para predicción de calidad de vinos utilizando Docker y Python.
+
+## 📁 Estructura del Proyecto
+
+```
+GRP/
+├── docker/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── buildAll.sh
+│   ├── runAll.sh
+│   └── stopAll.sh
+├── grp_app.py
+├── test_client.py
+├── wine_service.proto
+├── wine_service_pb2.py
+└── wine_service_pb2_grpc.py
+```
+
+## 🛠️ Requisitos
+
+- Docker
+- Python 3.10+
+- Modelo entrenado (`random_forest_model.pkl`)
+
+## 🚀 Configuración y Despliegue
+
+### 1. Construcción de la Imagen Docker
+
+El Dockerfile está configurado para:
+- Usar Python 3.10-slim como imagen base
+- Instalar dependencias necesarias del sistema
+- Configurar variables de entorno para el servicio gRPC
+- Copiar e instalar los requisitos de Python
+- Configurar el directorio de trabajo y los archivos del servicio
+
+### 2. Scripts de Automatización
+
+#### Construir la imagen
+```bash
+./buildAll.sh
+```
+Este script construye la imagen Docker con la etiqueta `microservicio-grpc:1.0`
+
+#### Iniciar el servicio
+```bash
+./runAll.sh
+```
+Este script:
+- Crea una red Docker llamada `microservices-net`
+- Inicia el contenedor con la configuración necesaria
+- Mapea el puerto 50051
+- Monta el volumen para los modelos
+
+#### Detener el servicio
+```bash
+./stopAll.sh
+```
+Este script detiene y limpia los contenedores y redes creados.
+
+## 📦 Dependencias Principales
+
+```text
+grpcio==1.68.1
+grpcio-tools==1.68.1
+numpy==1.26.4
+scikit-learn==1.4.1.post1
+joblib==1.3.2
+```
+
+## 🔧 Variables de Entorno
+
+- `GRPC_PORT`: Puerto para el servicio gRPC (default: 50051)
+- `MODEL_PATH`: Ruta al modelo serializado (default: /app/models/random_forest_model.pkl)
+- `PYTHONUNBUFFERED`: Configuración para logs de Python
+
+## 🌟 Características del Servicio
+
+- Predicción de calidad de vinos basada en características químicas
+- Endpoint de health check para monitoreo
+- Manejo de errores robusto
+- Escalable y containerizado
+
+## 📝 Uso del Servicio
+
+1. Construir la imagen:
+```bash
+cd docker
+./buildAll.sh
+```
+
+2. Iniciar el servicio:
+```bash
+./runAll.sh
+```
+
+3. Probar el servicio:
+```bash
+python test_client.py
+```
+
+4. Detener el servicio:
+```bash
+./stopAll.sh
+```
+
+## 🔍 Monitoreo
+
+El servicio incluye un endpoint de health check que puede ser consultado para verificar:
+- Estado del servicio
+- Carga del modelo
+- Mensajes de estado
+
+## ⚠️ Consideraciones
+
+- Asegúrate de que el modelo esté disponible en la ruta especificada
+- El puerto 50051 debe estar disponible en el host
+- Los permisos de ejecución deben estar configurados para los scripts .sh
+```
