@@ -1,4 +1,3 @@
-```markdown
 # Servicio gRPC de Predicción de Vinos
 
 Este proyecto implementa un servicio gRPC para predicción de calidad de vinos utilizando Docker y Python.
@@ -13,11 +12,14 @@ GRP/
 │   ├── buildAll.sh
 │   ├── runAll.sh
 │   └── stopAll.sh
-├── grp_app.py
-├── test_client.py
-├── wine_service.proto
-├── wine_service_pb2.py
-└── wine_service_pb2_grpc.py
+├── src/
+│   ├── grp_app.py
+│   ├── test_client.py
+│   ├── wine_service.proto
+│   ├── wine_service_pb2.py
+│   └── wine_service_pb2_grpc.py
+└── models/
+    └── random_forest_model.pkl
 ```
 
 ## 🛠️ Requisitos
@@ -41,34 +43,27 @@ El Dockerfile está configurado para:
 
 #### Construir la imagen
 ```bash
-./buildAll.sh
+cd docker && chmod +x *.sh && ./buildAll.sh
 ```
-Este script construye la imagen Docker con la etiqueta `microservicio-grpc:1.0`
 
 #### Iniciar el servicio
 ```bash
 ./runAll.sh
 ```
-Este script:
-- Crea una red Docker llamada `microservices-net`
-- Inicia el contenedor con la configuración necesaria
-- Mapea el puerto 50051
-- Monta el volumen para los modelos
 
 #### Detener el servicio
 ```bash
 ./stopAll.sh
 ```
-Este script detiene y limpia los contenedores y redes creados.
 
 ## 📦 Dependencias Principales
 
 ```text
-grpcio==1.68.1
-grpcio-tools==1.68.1
-numpy==1.26.4
-scikit-learn==1.4.1.post1
-joblib==1.3.2
+grpcio==1.54.2
+grpcio-tools==1.54.2
+numpy==1.24.3
+scikit-learn==1.2.2
+joblib==1.2.0
 ```
 
 ## 🔧 Variables de Entorno
@@ -86,24 +81,29 @@ joblib==1.3.2
 
 ## 📝 Uso del Servicio
 
-1. Construir la imagen:
+1. Asegúrate de tener el modelo en la carpeta correcta:
 ```bash
-cd docker
-./buildAll.sh
+mkdir -p models
+# Coloca tu modelo random_forest_model.pkl en la carpeta models
 ```
 
-2. Iniciar el servicio:
+2. Construir e iniciar el servicio:
 ```bash
+cd docker
+chmod +x *.sh
+./buildAll.sh
 ./runAll.sh
 ```
 
 3. Probar el servicio:
 ```bash
+cd ../src
 python test_client.py
 ```
 
 4. Detener el servicio:
 ```bash
+cd ../docker
 ./stopAll.sh
 ```
 

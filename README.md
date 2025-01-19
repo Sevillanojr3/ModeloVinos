@@ -133,18 +133,103 @@ Si encuentras problemas, verifica lo siguiente:
 
 ---
 
+## **Opciones de Despliegue**
+
+### Docker Individual
+Cada servicio cuenta con su propio Dockerfile para construcción y despliegue individual:
+
+#### API REST
+```bash
+cd Api
+docker build -t wine-api .
+docker run -p 8000:8000 wine-api
+```
+
+#### Servidor gRPC
+```bash
+cd GRP
+docker build -t wine-grpc .
+docker run -p 50051:50051 wine-grpc
+```
+
+#### Servicios Kafka
+```bash
+cd Kafka
+docker build -t wine-kafka-service .
+docker run --network kafka-network wine-kafka-service
+```
+
+### Docker Compose
+Para desplegar todos los servicios juntos, utiliza el docker-compose principal:
+
+```bash
+docker-compose up -d
+```
+
+### Despliegue en Kubernetes (Minikube)
+También puedes desplegar el sistema en un cluster local de Kubernetes usando Minikube:
+
+1. **Inicia Minikube**
+```bash
+minikube start
+```
+
+2. **Aplica los manifiestos de Kubernetes**
+```bash
+# Desplegar API REST
+kubectl apply -f k8s/api-deployment.yaml
+kubectl apply -f k8s/api-service.yaml
+
+# Desplegar gRPC
+kubectl apply -f k8s/grpc-deployment.yaml
+kubectl apply -f k8s/grpc-service.yaml
+
+# Desplegar Kafka
+kubectl apply -f k8s/kafka-deployment.yaml
+kubectl apply -f k8s/kafka-service.yaml
+```
+
+3. **Verifica los despliegues**
+```bash
+kubectl get pods
+kubectl get services
+```
+
+4. **Accede a los servicios**
+```bash
+# Obtén la URL de la API REST
+minikube service wine-api --url
+
+# Obtén la URL del servicio gRPC
+minikube service wine-grpc --url
+```
+
+> **Nota**: Asegúrate de tener los archivos de configuración necesarios en el directorio `k8s/` de tu proyecto.
+
+---
+
 ## **Estructura del Proyecto**
 
 ```plaintext
 ├── Api/
 │   ├── api_app.py          # Servicio REST API
+│   ├── Dockerfile         # Dockerfile para API REST
 ├── GRP/
 │   ├── grp_app.py          # Servidor gRPC
-│   ├── test_client.py      # Cliente de prueba para gRPC
+│   ├── Dockerfile        # Dockerfile para gRPC
 ├── Kafka/
 │   ├── app/
 │   │   ├── prediction_service.py  # Servicio Kafka
+│   ├── Dockerfile       # Dockerfile para servicio Kafka
 │   ├── docker-kafka/       # Configuración de Docker para Kafka
+├── k8s/                 # Manifiestos de Kubernetes
+│   ├── api-deployment.yaml
+│   ├── api-service.yaml
+│   ├── grpc-deployment.yaml
+│   ├── grpc-service.yaml
+│   ├── kafka-deployment.yaml
+│   ├── kafka-service.yaml
+├── docker-compose.yml   # Compose para todo el sistema
 ├── comparison_text.py      # Comparador de predicciones
 ├── requirements.txt        # Dependencias del proyecto
 ```

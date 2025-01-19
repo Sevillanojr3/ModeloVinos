@@ -1,4 +1,3 @@
-```markdown
 # Configuración de Kafka con Docker Compose
 
 Este documento describe la configuración de un cluster de Kafka usando Docker Compose, incluyendo Zookeeper y Kafdrop para monitoreo.
@@ -27,20 +26,18 @@ environment:
 ### Kafka
 ```yaml
 ports:
-  - "29092:29092"  # Mismo host
-  - "29093:29093"  # Host diferente
-  - "9092:9092"    # Interno
+  - "29092:29092"  # Acceso local
+  - "9092:9092"    # Comunicación interna
 ```
 
 #### Configuración de Listeners
 - INTERNAL: `kafka:9092` (comunicación entre contenedores)
-- EXTERNAL_SAME_HOST: `localhost:29092` (acceso local)
-- EXTERNAL_DIFFERENT_HOST: `192.168.5.242:29093` (acceso remoto)
+- EXTERNAL: `localhost:29092` (acceso local y remoto)
 
 #### Configuraciones Importantes
 - Broker ID: 1
 - Factor de replicación: 1
-- Particiones por defecto: 3
+- Particiones por defecto: 1
 - Auto-creación de topics: habilitado
 
 ### Kafdrop
@@ -59,10 +56,9 @@ environment:
 Volúmenes montados para datos persistentes:
 ```yaml
 volumes:
-  - ./Kafka/kafka-storage/zookeeper/data:/var/lib/zookeeper/data
-  - ./Kafka/kafka-storage/zookeeper/log:/var/lib/zookeeper/log
-  - ./Kafka/kafka-storage/kafka/data:/var/lib/kafka/data
-  - ./Kafka/kafka-storage/kafka/secrets:/etc/kafka/secrets
+  - ./data/zookeeper/data:/var/lib/zookeeper/data
+  - ./data/zookeeper/log:/var/lib/zookeeper/log
+  - ./data/kafka/data:/var/lib/kafka/data
 ```
 
 ## Red

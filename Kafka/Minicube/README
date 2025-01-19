@@ -43,24 +43,32 @@ Kafka/
 
 ## Instalación
 
-1. Inicia Minikube:
+1. Inicia Minikube con suficientes recursos:
 ```bash
-minikube start
+minikube start --memory 4096 --cpus 2
 ```
 
-2. Configura la variable de entorno para la IP de Minikube:
+2. Habilita el addon de StorageClass por defecto:
+```bash
+minikube addons enable storage-provisioner
+minikube addons enable default-storageclass
+```
+
+3. Configura la variable de entorno para la IP de Minikube:
 ```bash
 export MINIKUBE_IP=$(minikube ip)
 ```
 
-3. Aplica los archivos YAML en orden:
+4. Aplica los archivos YAML en orden:
 ```bash
 kubectl apply -f Persist.yaml
+kubectl wait --for=condition=Ready pvc/zookeeper-data-pvc pvc/zookeeper-log-pvc pvc/kafka-data-pvc
 kubectl apply -f zookeeper.yaml
+kubectl wait --for=condition=Ready pod -l app=zookeeper
 kubectl apply -f kafka.yaml
 ```
 
-4. Verifica el despliegue:
+5. Verifica el despliegue:
 ```bash
 kubectl get pods
 kubectl get services
@@ -86,26 +94,28 @@ El broker Kafka está configurado con:
 
 ## Prueba de Funcionamiento
 
-1. Obtén la IP de Minikube:
+1. Espera a que todos los pods estén listos:
 ```bash
-minikube ip
+kubectl wait --for=condition=Ready pod -l app=kafka
 ```
 
-2. Crea un topic de prueba:
+2. Obtén el nombre del pod de Kafka:
 ```bash
-kubectl exec -it <kafka-pod-name> -- kafka-topics.sh \
-    --create \
-    --topic test-topic \
+export KAFKA_POD=$(kubectl get pods -l app=kafka -o jsonpath='{.items[0].metadata.name}')
+```
+
+3. Crea un topic de prueba:
+```bash
+kubectl exec -it $KAFKA_POD -- /bin/bash -c \
+    'kafka-topics.sh --create --topic test-topic \
     --bootstrap-server localhost:9092 \
-    --partitions 3 \
-    --replication-factor 1
+    --partitions 3 --replication-factor 1'
 ```
 
-3. Lista los topics:
+4. Lista los topics:
 ```bash
-kubectl exec -it <kafka-pod-name> -- kafka-topics.sh \
-    --list \
-    --bootstrap-server localhost:9092
+kubectl exec -it $KAFKA_POD -- /bin/bash -c \
+    'kafka-topics.sh --list --bootstrap-server localhost:9092'
 ```
 
 ## Limpieza
@@ -129,21 +139,30 @@ kubectl delete -f Persist.yaml
 
 ## Troubleshooting
 
-1. Si los pods no arrancan, verifica los logs:
+1. Si los pods no arrancan:
 ```bash
-kubectl logs <pod-name>
+# Verificar el estado de los pods
+kubectl get pods
+# Verificar logs detallados
+kubectl describe pod $KAFKA_POD
+kubectl logs $KAFKA_POD
 ```
 
 2. Para problemas de volúmenes:
 ```bash
-kubectl describe pv
-kubectl describe pvc
+# Verificar que los PVCs están enlazados
+kubectl get pvc
+kubectl get pv
+# Verificar eventos de StorageClass
+kubectl get events --field-selector involvedObject.kind=PersistentVolumeClaim
 ```
 
-3. Para problemas de red:
+3. Para verificar la conectividad:
 ```bash
-kubectl describe service kafka
-kubectl describe service zookeeper
+# Probar la conexión interna
+kubectl exec -it $KAFKA_POD -- nc -zv localhost 9092
+# Obtener la URL externa
+echo "Kafka External URL: $(minikube ip):29093"
 ```
 
 ## Referencias
